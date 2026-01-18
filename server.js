@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 
 // --- Middleware ---
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: true, // Pozwala na wszystkie originy (w produkcji ustaw konkretny)
     credentials: true
 }));
 app.use(express.json());

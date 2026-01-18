@@ -1,13 +1,28 @@
 // --- Zmienne globalne ---
 let tasks = []; // Lokalna kopia zadań pobranych z serwera
 let currentFilter = 'all'; // Aktualny filtr ('all', 'active', 'completed')
-const API_URL = 'http://localhost:3000/tasks'; // Adres Twojego API
+const API_URL = 'http://localhost:3000'; // Adres Twojego API
+let currentUser = null;
 
 // --- Selektory DOM ---
+const authScreen = document.getElementById('auth-screen');
+const mainContent = document.getElementById('main-content');
 const taskList = document.getElementById('task-list');
 const loader = document.getElementById('loader');
 const emptyState = document.getElementById('empty-state');
 const taskCounter = document.getElementById('task-counter');
+const userInfo = document.getElementById('user-info');
+const userEmail = document.getElementById('user-email');
+const logoutBtnContainer = document.getElementById('logout-btn-container');
+const logoutBtn = document.getElementById('logout-btn');
+
+// Formularze autentykacji
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const loginEmailInput = document.getElementById('login-email');
+const loginPasswordInput = document.getElementById('login-password');
+const registerEmailInput = document.getElementById('register-email');
+const registerPasswordInput = document.getElementById('register-password');
 
 // Formularz dodawania
 const addTaskForm = document.getElementById('add-task-form');
@@ -32,13 +47,42 @@ let editTaskModal;
 
 // Modal usuwania
 let deleteConfirmModal;
+let logoutConfirmModal;
 const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
 
 // Filtry
 const filterButtonsContainer = document.getElementById('filter-buttons');
 
+// --- Funkcje pomocnicze API ---
+
+/**
+ * Wykonuje zapytanie fetch z obsługą ciasteczek
+ */
+async function apiFetch(url, options = {}) {
+    const defaultOptions = {
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+        }
+    };
+
+    const response = await fetch(`${API_URL}${url}`, { ...defaultOptions, ...options });
+    
+    if (response.status === 401) {
+        // Token wygasł lub nieprawidłowy
+        handleLogout();
+        throw new Error('Sesja wygasła. Zaloguj się ponownie.');
+    }
+    
+    return response;
+}
+
 // --- Inicjalizacja Aplikacji ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Inicjalizacja Materialize tabs
+    M.Tabs.init(document.querySelectorAll('.tabs'));
     
     const datepickerOptions = {
         format: 'dd.mm.yyyy',
@@ -73,22 +117,176 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     deleteConfirmModal = M.Modal.init(document.getElementById('delete-confirm-modal'));
+    logoutConfirmModal = M.Modal.init(document.getElementById('logout-confirm-modal'));
 
     M.FormSelect.init(document.querySelectorAll('select'));
     M.Datepicker.init(document.querySelectorAll('.datepicker'), datepickerOptions);
 
     setupEventListeners();
     
-    // Zamiast loadTasks z localStorage, pobieramy z API
-    fetchTasks();
+    // Sprawdź, czy użytkownik jest zalogowany
+    await checkAuth();
 });
 
 function setupEventListeners() {
+    // Autentykacja
+    loginForm.addEventListener('submit', handleLogin);
+    registerForm.addEventListener('submit', handleRegister);
+    logoutBtn.addEventListener('click', () => logoutConfirmModal.open());
+    confirmLogoutBtn.addEventListener('click', handleLogout);
+    
+    // Zadania
     addTaskForm.addEventListener('submit', handleAddTask);
     editTaskForm.addEventListener('submit', handleEditTask);
     taskList.addEventListener('click', handleTaskListClick);
     confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
     filterButtonsContainer.addEventListener('click', handleFilterClick);
+}
+
+// --- Autentykacja ---
+
+/**
+ * Sprawdza, czy użytkownik jest zalogowany
+ */
+async function checkAuth() {
+    try {
+        const response = await apiFetch('/me');
+        if (response.ok) {
+            currentUser = await response.json();
+            showMainContent();
+        } else {
+            showAuthScreen();
+        }
+    } catch (error) {
+        console.error('Błąd sprawdzania autentykacji:', error);
+        showAuthScreen();
+    }
+}
+
+/**
+ * Obsługuje logowanie
+ */
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = loginEmailInput.value.trim();
+    const password = loginPasswordInput.value;
+
+    if (!email || !password) {
+        M.toast({ html: 'Wypełnij wszystkie pola!' });
+        return;
+    }
+
+    try {
+        showLoader(true);
+        const response = await apiFetch('/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            M.toast({ html: 'Zalogowano pomyślnie!' });
+            showMainContent();
+            await fetchTasks();
+        } else {
+            const error = await response.json();
+            M.toast({ html: error.error || 'Błąd logowania' });
+        }
+    } catch (error) {
+        console.error('Błąd logowania:', error);
+        M.toast({ html: error.message || 'Błąd połączenia z serwerem' });
+    } finally {
+        showLoader(false);
+    }
+}
+
+/**
+ * Obsługuje rejestrację
+ */
+async function handleRegister(e) {
+    e.preventDefault();
+    const email = registerEmailInput.value.trim();
+    const password = registerPasswordInput.value;
+
+    if (!email || !password) {
+        M.toast({ html: 'Wypełnij wszystkie pola!' });
+        return;
+    }
+
+    if (password.length < 6) {
+        M.toast({ html: 'Hasło musi mieć co najmniej 6 znaków!' });
+        return;
+    }
+
+    try {
+        showLoader(true);
+        const response = await apiFetch('/register', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            M.toast({ html: 'Rejestracja zakończona pomyślnie!' });
+            showMainContent();
+            await fetchTasks();
+        } else {
+            const error = await response.json();
+            M.toast({ html: error.error || 'Błąd rejestracji' });
+        }
+    } catch (error) {
+        console.error('Błąd rejestracji:', error);
+        M.toast({ html: error.message || 'Błąd połączenia z serwerem' });
+    } finally {
+        showLoader(false);
+    }
+}
+
+/**
+ * Obsługuje wylogowanie
+ */
+async function handleLogout() {
+    try {
+        await apiFetch('/logout', {
+            method: 'POST'
+        });
+        currentUser = null;
+        logoutConfirmModal.close();
+        showAuthScreen();
+        M.toast({ html: 'Wylogowano pomyślnie' });
+    } catch (error) {
+        console.error('Błąd wylogowania:', error);
+        // Nawet jeśli wystąpi błąd, wyczyść sesję lokalnie
+        currentUser = null;
+        showAuthScreen();
+    }
+}
+
+/**
+ * Pokazuje ekran autentykacji
+ */
+function showAuthScreen() {
+    authScreen.classList.remove('hide');
+    mainContent.classList.add('hide');
+    userInfo.classList.add('hide');
+    logoutBtnContainer.classList.add('hide');
+    loginForm.reset();
+    registerForm.reset();
+}
+
+/**
+ * Pokazuje główną zawartość aplikacji
+ */
+function showMainContent() {
+    authScreen.classList.add('hide');
+    mainContent.classList.remove('hide');
+    userInfo.classList.remove('hide');
+    logoutBtnContainer.classList.remove('hide');
+    if (currentUser) {
+        userEmail.textContent = currentUser.email;
+    }
 }
 
 // --- Logika API (CRUD) ---
@@ -113,18 +311,16 @@ function showLoader(show) {
 async function fetchTasks() {
     try {
         showLoader(true);
-        const response = await fetch(API_URL);
+        const response = await apiFetch('/tasks');
         
         if (!response.ok) throw new Error('Błąd pobierania danych z serwera');
         
         const backendTasks = await response.json();
         
         // Mapowanie danych: Backend (completed: boolean) -> Frontend (status: string)
-        // Backend ID jest liczbą, frontend obsługuje to dynamicznie.
         tasks = backendTasks.map(t => ({
             ...t,
             status: t.completed ? 'completed' : 'active',
-            // Zabezpieczenie, jeśli backend nie zwróci tych pól (pusta wartość domyślna)
             priority: t.priority || 'medium',
             assignee: t.assignee || '',
             category: t.category || '',
@@ -137,8 +333,8 @@ async function fetchTasks() {
         renderTasks();
     } catch (error) {
         console.error("API Error:", error);
-        M.toast({ html: 'Nie udało się połączyć z serwerem.' });
-        tasks = []; // Wyczyść listę w razie błędu
+        M.toast({ html: error.message || 'Nie udało się połączyć z serwerem.' });
+        tasks = [];
         renderTasks();
     } finally {
         showLoader(false);
@@ -156,8 +352,6 @@ async function handleAddTask(e) {
         return;
     }
 
-    // Przygotowanie obiektu do wysłania
-    // Wysyłamy wszystko, nawet jeśli prosty backend zapisze tylko title/description
     const newTaskPayload = {
         title: title,
         description: descriptionInput.value.trim(),
@@ -169,25 +363,26 @@ async function handleAddTask(e) {
     
     try {
         showLoader(true);
-        const response = await fetch(API_URL, {
+        const response = await apiFetch('/tasks', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newTaskPayload)
         });
 
-        if (!response.ok) throw new Error('Błąd zapisu zadania');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Błąd zapisu zadania');
+        }
 
         M.toast({ html: 'Zadanie dodane pomyślnie!' });
         addTaskForm.reset();
         M.FormSelect.init(priorityInput, {});
         addTaskModal.close();
 
-        // Odśwież listę z serwera
         await fetchTasks();
 
     } catch (error) {
         console.error("Błąd podczas dodawania zadania:", error);
-        M.toast({ html: `Błąd: ${error.message}` });
+        M.toast({ html: error.message || `Błąd: ${error.message}` });
         showLoader(false);
     }
 }
@@ -216,13 +411,15 @@ async function handleEditTask(e) {
 
     try {
         showLoader(true);
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await apiFetch(`/tasks/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedPayload)
         });
 
-        if (!response.ok) throw new Error('Błąd edycji');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Błąd edycji');
+        }
 
         M.toast({ html: 'Zadanie zaktualizowane!' });
         editTaskForm.reset();
@@ -232,7 +429,7 @@ async function handleEditTask(e) {
 
     } catch (error) {
         console.error("Błąd edycji:", error);
-        M.toast({ html: `Błąd: ${error.message}` });
+        M.toast({ html: error.message || `Błąd: ${error.message}` });
         showLoader(false);
     }
 }
@@ -268,13 +465,12 @@ async function toggleTaskStatus(id, isCompleted) {
     const task = tasks.find(t => t.id == id);
     if (task) {
         task.status = isCompleted ? 'completed' : 'active';
-        renderTasks(); // Prerenderuj lokalnie
+        renderTasks();
     }
     
     try {
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await apiFetch(`/tasks/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ completed: isCompleted })
         });
 
@@ -285,7 +481,7 @@ async function toggleTaskStatus(id, isCompleted) {
     } catch (error) {
         console.error("Błąd zmiany statusu:", error);
         M.toast({ html: `Błąd połączenia: Cofam zmianę` });
-        fetchTasks(); // Pobierz prawdę z serwera w razie błędu
+        fetchTasks();
     }
 }
 
@@ -305,7 +501,7 @@ async function handleConfirmDelete() {
     if (!id) return;
 
     try {
-        const response = await fetch(`${API_URL}/${id}`, {
+        const response = await apiFetch(`/tasks/${id}`, {
             method: 'DELETE'
         });
 
@@ -314,7 +510,8 @@ async function handleConfirmDelete() {
         } else if (response.status === 404) {
             M.toast({ html: 'Zadanie już nie istnieje.' });
         } else {
-            throw new Error('Nie udało się usunąć.');
+            const error = await response.json();
+            throw new Error(error.error || 'Nie udało się usunąć.');
         }
 
         deleteConfirmModal.close();
@@ -322,7 +519,7 @@ async function handleConfirmDelete() {
 
     } catch (error) {
         console.error("Błąd usuwania:", error);
-        M.toast({ html: `Błąd: ${error.message}` });
+        M.toast({ html: error.message || `Błąd: ${error.message}` });
     }
 }
 
@@ -330,7 +527,6 @@ async function handleConfirmDelete() {
  * Otwiera modal edycji.
  */
 function openEditModal(id) {
-    // ID z backendu to number, dataset to string, używamy '=='
     const task = tasks.find(t => t.id == id);
     if (!task) {
         M.toast({ html: 'Nie znaleziono zadania!' });
@@ -350,8 +546,7 @@ function openEditModal(id) {
     editTaskModal.open();
 }
 
-
-// --- Renderowanie i UI (Prawie bez zmian) ---
+// --- Renderowanie i UI ---
 
 function renderTasks() {
     taskList.innerHTML = ''; 
@@ -362,7 +557,6 @@ function renderTasks() {
     });
 
     if (filteredTasks.length === 0) {
-        // Sprytne komunikaty
         if (tasks.length > 0) {
             emptyState.querySelector('h5').textContent = 'Brak zadań';
             emptyState.querySelector('p').textContent = `Nie masz żadnych ${currentFilter === 'active' ? 'aktywnych' : 'zakończonych'} zadań.`;
