@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "title": "Zadanie zaktualizowane!",
+    "description": "dada",
+    "assignee": "Paweł Jurek",
+    "priority": "low",
+    "category": "Pilne",
+    "deadline": "10.02.2025",
+    "completed": true,
+    "createdAt": "2025-11-22T18:05:02.821Z",
+    "updatedAt": "2025-11-22T18:33:00.915Z"
+  }
+]

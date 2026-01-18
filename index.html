@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikacja ToDo (REST API)</title>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav class="blue darken-2">
+        <div class="nav-wrapper container">
+            <a href="#" class="brand-logo"><i class="material-icons left">assignment_turned_in</i>Manager Zadań API</a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li id="user-info" class="hide">
+                    <span id="user-email" class="white-text"></span>
+                </li>
+                <li id="logout-btn-container" class="hide">
+                    <a href="#!" id="logout-btn" class="waves-effect waves-light btn-small red darken-1">
+                        <i class="material-icons left">exit_to_app</i>Wyloguj
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Ekran logowania/rejestracji -->
+    <div id="auth-screen" class="container" style="margin-top: 50px;">
+        <div class="row">
+            <div class="col s12 m8 offset-m2 l6 offset-l3">
+                <div class="card">
+                    <div class="card-content">
+                        <span class="card-title center-align">Manager Zadań</span>
+                        <ul class="tabs">
+                            <li class="tab col s6"><a href="#login-tab" class="active">Logowanie</a></li>
+                            <li class="tab col s6"><a href="#register-tab">Rejestracja</a></li>
+                        </ul>
+                        
+                        <div id="login-tab" class="col s12">
+                            <form id="login-form" style="margin-top: 20px;">
+                                <div class="input-field">
+                                    <i class="material-icons prefix">email</i>
+                                    <input id="login-email" type="email" class="validate" required>
+                                    <label for="login-email">Email</label>
+                                </div>
+                                <div class="input-field">
+                                    <i class="material-icons prefix">lock</i>
+                                    <input id="login-password" type="password" class="validate" required>
+                                    <label for="login-password">Hasło</label>
+                                </div>
+                                <button type="submit" class="btn waves-effect waves-light blue full-width" style="width: 100%; margin-top: 20px;">
+                                    Zaloguj się
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div id="register-tab" class="col s12">
+                            <form id="register-form" style="margin-top: 20px;">
+                                <div class="input-field">
+                                    <i class="material-icons prefix">email</i>
+                                    <input id="register-email" type="email" class="validate" required>
+                                    <label for="register-email">Email</label>
+                                </div>
+                                <div class="input-field">
+                                    <i class="material-icons prefix">lock</i>
+                                    <input id="register-password" type="password" class="validate" required minlength="6">
+                                    <label for="register-password">Hasło (min. 6 znaków)</label>
+                                </div>
+                                <button type="submit" class="btn waves-effect waves-light green full-width" style="width: 100%; margin-top: 20px;">
+                                    Zarejestruj się
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main id="main-content" class="hide">
+        <div class="container">
+            <div class="card-panel filters-section z-depth-1">
+                <div class="btn-group" id="filter-buttons">
+                    <a href="#" class="btn waves-effect waves-light blue" data-filter="all">Wszystkie</a>
+                    <a href="#" class="btn-flat waves-effect" data-filter="active">Aktywne</a>
+                    <a href="#" class="btn-flat waves-effect" data-filter="completed">Zakończone</a>
+                </div>
+                <div id="task-counter" class="hide">Aktywne zadania: 0</div>
+            </div>
+
+            <div id="loader" class="hide">
+                <div class="preloader-wrapper big active">
+                    <div class="spinner-layer spinner-blue-only">
+                        <div class="circle-clipper left">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="gap-patch">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="circle-clipper right">
+                            <div class="circle"></div>
+                        </div>
+                    </div>
+                </div>
+                <p>Łączenie z serwerem...</p>
+            </div>
+
+            <ul id="task-list" class="collection z-depth-1">
+                </ul>
+
+            <div id="empty-state" class="card-panel center-align hide">
+                <i class="material-icons large">inbox</i>
+                <h5>Brak zadań</h5>
+                <p>Nie masz obecnie żadnych zadań. Dodaj nowe, klikając przycisk "+"!</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer blue darken-3">
+        <div class="footer-copyright blue darken-4">
+            <div class="container">
+                © 2025 Aplikacja ToDo API
+                <span class="grey-text text-lighten-4 right">Powered by Node.js & Materialize</span>
+            </div>
+        </div>
+    </footer>
+
+    <div class="fixed-action-btn">
+        <a href="#add-task-modal" class="btn-floating btn-large red waves-effect waves-light modal-trigger" id="add-task-btn">
+            <i class="large material-icons">add</i>
+        </a>
+    </div>
+
+    <div id="add-task-modal" class="modal modal-fixed-footer">
+        <form id="add-task-form">
+            <div class="modal-content">
+                <h4>Dodaj nowe zadanie</h4>
+                <div class="input-field">
+                    <i class="material-icons prefix">title</i>
+                    <input id="title" type="text" class="validate" required>
+                    <label for="title">Tytuł zadania</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">description</i>
+                    <textarea id="description" class="materialize-textarea"></textarea>
+                    <label for="description">Opis (opcjonalny)</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">person_outline</i>
+                    <input id="assignee" type="text">
+                    <label for="assignee">Wykonawca</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">flag</i>
+                    <select id="priority">
+                        <option value="low" data-icon="https://placehold.co/20x20/4caf50/FFFFFF?text=L" class="left">Niski</option>
+                        <option value="medium" selected data-icon="https://placehold.co/20x20/ffc107/FFFFFF?text=M" class="left">Średni</option>
+                        <option value="high" data-icon="https://placehold.co/20x20/f44336/FFFFFF?text=H" class="left">Wysoki</option>
+                    </select>
+                    <label>Priorytet</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">label_outline</i>
+                    <input id="category" type="text">
+                    <label for="category">Kategoria / Tag</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">date_range</i>
+                    <input id="deadline" type="text" class="datepicker">
+                    <label for="deadline">Termin wykonania</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-close waves-effect waves-green btn-flat">Anuluj</button>
+                <button type="submit" class="btn waves-effect waves-light blue">Dodaj</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="edit-task-modal" class="modal modal-fixed-footer">
+        <form id="edit-task-form">
+            <div class="modal-content">
+                <h4>Edytuj zadanie</h4>
+                <input type="hidden" id="edit-task-id">
+                <div class="input-field">
+                    <i class="material-icons prefix">title</i>
+                    <input id="edit-title" type="text" class="validate" required>
+                    <label for="edit-title" class="active">Tytuł zadania</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">description</i>
+                    <textarea id="edit-description" class="materialize-textarea"></textarea>
+                    <label for="edit-description" class="active">Opis (opcjonalny)</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">person_outline</i>
+                    <input id="edit-assignee" type="text">
+                    <label for="edit-assignee" class="active">Wykonawca</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">flag</i>
+                    <select id="edit-priority">
+                        <option value="low" data-icon="https://placehold.co/20x20/4caf50/FFFFFF?text=L" class="left">Niski</option>
+                        <option value="medium" data-icon="https://placehold.co/20x20/ffc107/FFFFFF?text=M" class="left">Średni</option>
+                        <option value="high" data-icon="https://placehold.co/20x20/f44336/FFFFFF?text=H" class="left">Wysoki</option>
+                    </select>
+                    <label>Priorytet</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">label_outline</i>
+                    <input id="edit-category" type="text">
+                    <label for="edit-category" class="active">Kategoria / Tag</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">date_range</i>
+                    <input id="edit-deadline" type="text" class="datepicker">
+                    <label for="edit-deadline" class="active">Termin wykonania</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-close waves-effect waves-green btn-flat">Anuluj</button>
+                <button type="submit" class="btn waves-effect waves-light blue">Zapisz zmiany</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="delete-confirm-modal" class="modal">
+        <div class="modal-content">
+            <h4>Potwierdź usunięcie</h4>
+            <p>Czy na pewno chcesz trwale usunąć to zadanie?</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-close waves-effect waves-green btn-flat">Anuluj</button>
+            <button type="button" id="confirm-delete-btn" class="btn waves-effect waves-light red">Usuń</button>
+        </div>
+    </div>
+
+    <div id="logout-confirm-modal" class="modal">
+        <div class="modal-content">
+            <h4>Potwierdź wylogowanie</h4>
+            <p>Czy na pewno chcesz się wylogować?</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-close waves-effect waves-green btn-flat">Anuluj</button>
+            <button type="button" id="confirm-logout-btn" class="btn waves-effect waves-light red">Wyloguj</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+    <script src="app.js" defer></script>
+</body>
+</html>

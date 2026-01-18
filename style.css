@@ -1,0 +1,161 @@
+/* --- Style niestandardowe --- */
+body {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    background-color: #f4f4f4; /* Jasne tło dla całej aplikacji */
+}
+
+main {
+    flex: 1 0 auto;
+    padding-bottom: 30px;
+}
+
+/* Ustawienia dla stopki */
+.page-footer {
+    padding-top: 0;
+    margin-top: 20px;
+}
+
+/* Sekcja filtrów i licznika */
+.filters-section {
+    padding: 15px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Zawijanie na mniejszych ekranach */
+}
+
+.filters-section .btn-group .btn {
+    margin: 5px;
+}
+
+#task-counter {
+    font-size: 1.1rem;
+    color: #757575;
+    margin: 5px;
+}
+
+/* Stylizacja elementu listy zadań */
+.task-item {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Zakończone zadanie */
+.task-item.completed .task-title,
+.task-item.completed .task-description {
+    text-decoration: line-through;
+    opacity: 0.7;
+    color: #757575;
+}
+
+.task-item.completed {
+    background-color: #fafafa;
+}
+
+.task-title {
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: #212121;
+}
+
+.task-description {
+    font-size: 0.9rem;
+    color: #616161;
+    margin-top: 5px;
+    white-space: pre-wrap; /* Zachowuje formatowanie opisu */
+}
+
+/* Szczegóły zadania (meta-dane) */
+.task-details {
+    margin-top: 15px;
+    font-size: 0.85rem;
+    color: #757575;
+    display: flex;
+    flex-wrap: wrap; /* Zawijanie tagów */
+    gap: 10px; /* Odstęp między tagami */
+    align-items: center;
+}
+
+.task-details .chip {
+    margin: 2px 0;
+    height: 28px;
+    line-height: 28px;
+    font-size: 0.8rem;
+}
+
+.task-details .material-icons {
+    font-size: 1.1rem;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.task-meta {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Etykiety priorytetów */
+.priority-badge {
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.priority-badge.low { background-color: #4caf50; } /* Zielony */
+.priority-badge.medium { background-color: #ffc107; color: #212121; } /* Żółty */
+.priority-badge.high { background-color: #f44336; } /* Czerwony */
+
+/* Zadanie przeterminowane (PRZYWRÓCONE) */
+.overdue-chip {
+    font-weight: 600;
+    /* Kolor tekstu jest już ustawiony w HTML (red-text text-darken-2) */
+    border: 1px solid #d32f2f;
+    background-color: #ffebee !important; /* Jasnoczerwone tło chipa */
+}
+
+.overdue-task {
+    /* Subtelne tło dla całego przeterminowanego zadania */
+    background-color: #fff8f8;
+}
+
+/* Przyciski akcji (edytuj, usuń) */
+.task-actions .btn-flat {
+    padding: 0 10px;
+}
+
+/* Styl dla pustej listy */
+#empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #9e9e9e;
+}
+
+#empty-state i {
+    font-size: 4rem;
+}
+
+#empty-state h5 {
+    margin-top: 10px;
+}
+
+/* Ładowanie (już niepotrzebne, ale zostawiam ukryte dla spójności) */
+#loader {
+    text-align: center;
+    padding: 40px;
+}
+
+/* Stylizacja modali */
+.modal .modal-content h4 {
+    margin-bottom: 25px;
+}
+
+/* Przycisk FAB do dodawania */
+.btn-floating {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+}

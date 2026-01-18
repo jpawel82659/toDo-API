@@ -1,0 +1,35 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  passwordHash String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  todos       Todo[]
+}
+
+model Todo {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @default("")
+  assignee    String?  @default("")
+  priority    String   @default("medium")
+  category    String?  @default("")
+  deadline    String?  @default("")
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
